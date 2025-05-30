@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Rompecabezas 3x3</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+        background: #f5f5f5;
+      }
+      #puzzle {
+        display: grid;
+        grid-template-columns: repeat(3, 80px);
+        grid-template-rows: repeat(3, 80px);
+        gap: 5px;
+      }
+      .tile {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 24px;
+        background: #4caf50;
+        color: white;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background 0.2s;
+      }
+      .tile:active {
+        background: #388e3c;
+      }
+      .empty {
+        background: #ddd;
+        cursor: default;
+      }
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        font-size: 18px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Rompecabezas 3x3</h1>
+    <div id="puzzle"></div>
+    <button onclick="solvePuzzle()">Resolver</button>
+
+    <script>
+      const puzzle = document.getElementById("puzzle");
+      let tiles = [];
+
+      function createBoard() {
+        puzzle.innerHTML = "";
+        tiles = [...Array(8).keys()].map((n) => n + 1).concat([""]);
+        let empty = 8;
+        for (let i = 0; i < 50; i++) {
+          const moves = [empty - 1, empty + 1, empty - 3, empty + 3].filter(
+            (m) =>
+              m >= 0 &&
+              m < 9 &&
+              Math.abs((m % 3) - (empty % 3)) +
+                Math.abs(Math.floor(m / 3) - Math.floor(empty / 3)) ===
+                1
+          );
+          const move = moves[Math.floor(Math.random() * moves.length)];
+          [tiles[empty], tiles[move]] = [tiles[move], tiles[empty]];
+          empty = move;
+        }
+        tiles.forEach((val, i) => {
+          const div = document.createElement("div");
+          div.className = "tile";
+          if (val === "") div.classList.add("empty");
+          div.textContent = val;
+          div.addEventListener("click", () => moveTile(i));
+          puzzle.appendChild(div);
+        });
+      }
+
+      function moveTile(index) {
+        const emptyIndex = tiles.indexOf("");
+        const validMoves = [index - 1, index + 1, index - 3, index + 3];
+        if (
+          validMoves.includes(emptyIndex) &&
+          Math.abs((emptyIndex % 3) - (index % 3)) +
+            Math.abs(Math.floor(emptyIndex / 3) - Math.floor(index / 3)) ===
+            1
+        ) {
+          [tiles[index], tiles[emptyIndex]] = [tiles[emptyIndex], tiles[index]];
+          updateBoard();
+        }
+      }
+
+      function updateBoard() {
+        const divs = document.querySelectorAll(".tile");
+        tiles.forEach((val, i) => {
+          const div = divs[i];
+          div.textContent = val;
+          if (val === "") {
+            div.classList.add("empty");
+          } else {
+            div.classList.remove("empty");
+          }
+        });
+      }
+
+      async function solvePuzzle() {
+        const target = [...Array(8).keys()]
+          .map((n) => n + 1)
+          .concat([""])
+          .join(",");
+        const visited = new Set();
+        const queue = [[tiles.slice(), []]];
+
+        while (queue.length) {
+          const [state, path] = queue.shift();
+          const key = state.join(",");
+          if (visited.has(key)) continue;
+          visited.add(key);
+
+          if (key === target) {
+            // Animar los movimientos sobre una copia del estado inicial
+            let animTiles = tiles.slice();
+            for (let move of path) {
+              await new Promise((r) => setTimeout(r, 200));
+              [animTiles[move[0]], animTiles[move[1]]] = [
+                animTiles[move[1]],
+                animTiles[move[0]],
+              ];
+              tiles = animTiles.slice();
+              updateBoard();
+            }
+            alert("¡Resuelto!");
+            return;
+          }
+
+          const empty = state.indexOf("");
+          const moves = [empty - 1, empty + 1, empty - 3, empty + 3];
+          for (let m of moves) {
+            if (
+              m >= 0 &&
+              m < 9 &&
+              Math.abs((m % 3) - (empty % 3)) +
+                Math.abs(Math.floor(m / 3) - Math.floor(empty / 3)) ===
+                1
+            ) {
+              const newState = state.slice();
+              [newState[empty], newState[m]] = [newState[m], newState[empty]];
+              queue.push([newState, path.concat([[empty, m]])]);
+            }
+          }
+        }
+
+        alert("No se pudo resolver (quizá estado muy mezclado).");
+      }
+
+      createBoard();
+    </script>
+  </body>
+</html>
